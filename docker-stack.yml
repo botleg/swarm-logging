@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.3.2
+    environment:
+      ES_JAVA_OPTS: '-Xms256m -Xmx256m'
+      xpack.security.enabled: 'false'
+      xpack.monitoring.enabled: 'false'
+      xpack.graph.enabled: 'false'
+      xpack.watcher.enabled: 'false'
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == logger
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:5.3.2
+    volumes:
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      - elasticsearch
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == logger
+
+  logspout:
+    image: bekt/logspout-logstash
+    environment:
+      ROUTE_URIS: 'logstash://logstash:5000'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - logstash
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:5.3.2
+    ports:
+      - '80:5601'
+    depends_on:
+      - elasticsearch
+    environment:
+      ELASTICSEARCH_URL: 'http://elasticsearch:9200'
+      XPACK_SECURITY_ENABLED: 'false'
+      XPACK_MONITORING_ENABLED: 'false'
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == worker
+
+volumes:
+  esdata:
+    driver: local

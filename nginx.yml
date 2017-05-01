@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  nginx:
+    image: hanzel/nginx-html
+    ports:
+      - "8000:80"
+    deploy:
+      replicas: 5
