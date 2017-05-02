@@ -13,6 +13,9 @@ services:
       - esdata:/usr/share/elasticsearch/data
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.hostname == agent1
 
   logstash:
     image: docker.elastic.co/logstash/logstash:5.3.2
